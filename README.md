@@ -1,6 +1,13 @@
 # Evanescence
+#### This algorithm is no better than a toy.
+#### *After you encrypt a certain amount of data this algorithm is no better than normal Vigenere (which means bad). *Please* don't use this algorithm if you want any kind of real security, whatsoever. I can and have broken this algorithm myself.*
+I say this because I've already seen people cloning this repository in the traffic logs. If you want to check out my *real* encryption work, try looking at [PARSEC](https://github.com/Serpent27/PARSEC) and [Wyndhim](https://github.com/Serpent27/Wyndhim). Although they're also not to be trusted (until they get proper review, assuming that ever happens) they're better examples of what proper cryptography looks like.
 
-A cipher-suite based on a combination of the [Vigenere cipher](https://en.wikipedia.org/wiki/Vigen%C3%A8re_cipher) and an [Autokey cipher](https://en.wikipedia.org/wiki/Autokey_cipher). The Evanescence cipher encryption/decryption tool is written in JavaScript, and the cipher itself is designed to be usable purely by hand.
+Or, you could always download [GPG](https://gnupg.org/) ([Windows users might find **Gpg4Win** useful](https://www.gpg4win.org/)). Gpg4Win is also easier to use than normal GPG; since it provides a nice GUI for all you graphics-loving softies.
+
+#### Anyway, enough telling you not to use this algorithm... Let's talk about Evanescence!
+
+Evanescence is a cipher-suite based on a combination of the [Vigenere cipher](https://en.wikipedia.org/wiki/Vigen%C3%A8re_cipher) and an [Autokey cipher](https://en.wikipedia.org/wiki/Autokey_cipher). The Evanescence cipher encryption/decryption tool is written in JavaScript, and the cipher itself is designed to be usable purely by hand.
 
 ## You can use the tool by visiting [cipher.serpentsec.com](http://cipher.serpentsec.com/)
 - **The tool has been tested on the following devices:**
