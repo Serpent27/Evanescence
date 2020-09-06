@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<html>
+	<head>
+    	<meta charset="utf-8"/>
+    	
+		<title>Evanescence/Vigenère Encryption</title>
+		
+		<style type="text/css">
+html
+{
+    display: block;
+    background-color: #222222;
+    color: #ffffff;
+}
+body
+{
+    font-size: 100%;
+    font-family: "Lucida Console", Monaco, monospace;
+}
+/* unvisited link */
+a:link {
+  color: #7777ff;
+}
+
+/* visited link */
+a:visited {
+  color: #7777ff;
+}
+
+/* mouse over link */
+a:hover {
+  color: #a000ff;
+}
+
+/* selected link */
+a:active {
+  color: ##0000ff;
+}
+
+.header
+{
+    text-align: center;
+	display: block;
+	color: #00ff00;
+	font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+	font-variant: small-caps;
+}
+.header h4
+{
+    color: #2222ff;
+}
+.crypto
+{
+    background-color: #111111;
+    color: #aaaaff;
+    font-size: 12pt;
+}
+div.crypto
+{
+    background-color: #222222;
+}
+div.div-hidden
+{
+    display: none;
+    border-left: 1pt dotted #222222
+}
+table.crypto.ciphersuite
+{
+    background-color: #111111;
+    border-radius: 5pt;
+    border: 1px solid #333333;
+    width: 100%;
+}
+table.crypto-algo td
+{
+    border-top: 1px solid #333333;
+}
+table.crypto-algo td.top
+{
+    border-top: none;
+}
+table.crypto-algo th
+{
+    font-size: 1.1em;
+    color: #8888ff;
+    text-align: left;
+    border-bottom: 5pt solid #111111;
+}
+
+table.crypto-algo th span.table-header
+{
+    font-size: .8em;
+    color: #6666ff;
+}
+textarea.crypto#key
+{
+    color: #ffaaaa;
+    width: 100%;
+    height: auto;
+}
+textarea.crypto#crypto-details
+{
+    color: #aaaaff;
+    width: 100%;
+    height: auto;
+    background-color: #222222;
+}
+textarea.crypto
+{
+    color: #ffaaaa;
+    width: 100%;
+    height: 40vh;
+}
+input.crypto
+{
+    width: 50%;
+}
+span.pre
+{
+    font-family: "Courier New", Courier, monospace;
+    color: #cccccc;
+    background-color: #111111;
+}
+pre
+{
+    font-family: "Courier New", Courier, monospace;
+    color: #cccccc;
+    background-color: #000000;
+    text-align: left;
+}
+		</style>
+		<script type="text/javascript">
+		    <!-- performs Evanescence encryption/decryption operations -->
+var alphabet_lower = "abcdefghijklmnopqrstuvwxyz";
+var alphabet_upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+var alphabet = alphabet_lower + alphabet_upper;
+
+var L = alphabet_lower;
+var U = alphabet_upper;
+var A = alphabet;
+
+String.prototype.replaceAll = function(search, replacement) {
+    var target = this;
+    return target.split(search).join(replacement);
+};
+
+var getDetails = function(mode, info){
+    var details = "Details for operation '" + mode + "'\n\n";
+    
+    for(var a=0; a<info.length; a++){
+        details += info[a] + "\n";
+    }
+    document.getElementById("crypto-details").value = details;
+}
+
+var getIv = function(iv){
+    var ret = Array();
+    var ivs = iv.split(/[^a-zA-Z]+/u);
+    
+    for(var a=0; a<ivs.length; a++){
+        if(ivs[a] == ""){
+            continue;
+        }
+        ret.push(ivs[a]);
+    }
+    //console.log(ret);
+    if(ret.length == 0){
+        console.log("Empty IV");
+        return Array("A");
+    }
+    return ret.join(' ');
+};
+
+var evanescence_expand_key = function(key, iv){
+    var keys = key.split(/[^a-zA-Z]+/u);
+    iv = iv.replaceAll(/[^a-zA-Z]+/u, "");
+    while(iv.length < 1){
+        iv += "a";
+    }
+    var k = 0;
+    var _k = "";
+    for(var a=1; a<keys.length; a++){
+        //if(keys[a].length > k){
+            k += keys[a].length;
+            _k += keys[a];
+        //}
+    }
+    k = "a".repeat(k);
+    for(var a=1; a<keys.length; a++){
+        if(keys[a] == ""){
+            continue;
+        }
+        k = vigenere_encrypt(keys[a], k, true);
+    }
+    if(k == ""){
+        k = "a";
+    }
+    
+    var kiv = keys[0];
+    kiv += "a".repeat((iv.length > kiv.length) ? iv.length-kiv.length : 0);
+    kiv = vigenere_encrypt(iv, kiv, true);
+    
+    var e_key = Array();
+    e_key.push(kiv);
+    e_key.push(k);
+    
+    return e_key;
+};
+
+var evanescence_encrypt = function(key, plaintext, iv, key_expansion){
+    var roundtext = plaintext;
+    var iv = getIv(iv);
+    
+    var info = Array();
+    info.push("\nInitial key:");
+    info.push(key);
+    
+    
+    keys = key_expansion(key, iv);
+    
+    info.push("Expanded key:")
+    info.push(keys);
+    info.push("\n");
+    
+    for(var a=0; a<keys.length; a++){        
+        var k = keys[a];
+        //if(k == ""){
+        //    continue;
+        //}
+        info.push("Round " + a + ":");
+        info.push("Round key = " + k);
+
+        
+        roundtext = vigenere_encrypt(k, roundtext, true);
+        
+        info.push("\nCiphertext (after round):");
+        info.push(roundtext);
+        info.push("\n");
+    }
+    
+    info.push("------------------\nFinal Ciphertext:");
+    info.push(roundtext);
+    
+    getDetails("Encrypt", info);
+    return roundtext;
+};
+var evanescence_decrypt = function(key, ciphertext, iv, key_expansion){
+    var roundtext = ciphertext;
+    var iv = getIv(iv);
+    
+    var info = Array();
+    info.push("\nInitial key:");
+    info.push(key);
+    
+    
+    keys = key_expansion(key, iv);
+    
+    info.push("Expanded key:")
+    info.push(keys);
+    info.push("\n");
+    
+    for(var a=keys.length-1; a>=0; a--){        
+        var k = keys[a];
+        if(k == ""){
+            continue;
+        }
+        info.push("Round " + a + ":");
+        info.push("Round key = " + k);
+
+        
+        roundtext = vigenere_decrypt(k, roundtext, true);
+        
+        info.push("\nPlaintext (after round):");
+        info.push(roundtext);
+        info.push("\n");
+    }
+    
+    info.push("------------------\nFinal Plaintext:");
+    info.push(roundtext);
+    
+    getDetails("Encrypt", info);
+    return roundtext;
+};
+
+var vigenere_encrypt = function(key, plaintext, modi){
+    var ciphertext = "";
+    var k = [];
+    
+    var i = 0;
+    for(var a=0; a<key.length; a++){
+        var char = key[a];
+        if(alphabet_lower.includes(char)){
+            k.push(Number(alphabet_lower.indexOf(char)));
+        } else if(alphabet_upper.includes(char)) {
+            k.push(Number(alphabet_upper.indexOf(char)));
+        } else {
+            /*
+                Not a valid key character, so ignore it.
+                Anything that doesn't belong in the key will be treated as padding.
+            */
+            i --;
+        }
+        i ++;
+    }
+    
+    i = 0;
+    for(var a=0; a<plaintext.length; a++){
+        var c;
+        var is_alpha;
+        var char = plaintext[a];
+        if(alphabet_lower.includes(char)){
+            var ix = mod((Number(alphabet_lower.indexOf(char)) + Number(k[i % k.length])) , alphabet_lower.length);
+            c = alphabet_lower[ix];
+            ciphertext += c;
+            /*
+            console.log("ct = " + c + ", k[i] = " + k[a % k.length] + ", c[i,0] = " + (Number(alphabet_lower.indexOf(char)) + Number(k[a % k.length])) % alphabet_lower.length);
+            console.log("ct = " + c + ", k[i] = " + k[a % k.length] + ", c[i,1] = " + (Number(k[a % k.length])) % alphabet_lower.length);
+            console.log("ct = " + c + ", k[i] = " + k[a % k.length] + ", c[i,2] = " + (Number(alphabet_lower.indexOf(char))) % alphabet_lower.length);
+            console.log("ct = " + c + ", k[i] = " + k[a % k.length] + ", c[i,3] = " + (Number(alphabet_lower.indexOf(char)) + Number(k[a % k.length])));
+            */
+            is_alpha = true;
+        } else if(alphabet_upper.includes(char)) {
+            var ix = mod((Number(alphabet_upper.indexOf(char)) + Number(k[i % k.length])) , alphabet_upper.length);
+            c = alphabet_upper[ix];
+            ciphertext += c;
+            is_alpha = true;
+        } else {
+            ciphertext += char;
+            i --;
+            is_alpha = false;
+        }
+
+        i ++;
+        
+                
+        // Add 'c' to the key
+        if(modi && is_alpha){
+            if(alphabet_lower.includes(c)){
+                k.push(Number(k[i % k.length] + alphabet_lower.indexOf(c) + 1) % alphabet_lower.length);
+//                k[i] = mod((Number(alphabet_lower.indexOf(c)) + 1, alphabet_lower.length); // Vigenere encrypt (algebraic)
+            } else if(alphabet_upper.includes(c)) {
+                k.push(Number(k[i % k.length] + alphabet_upper.indexOf(c) + 1) % alphabet_lower.length);
+//                k[i] = mod((Number(alphabet_upper.indexOf(c))) + 1, alphabet_upper.length); // Vigenere encrypt (algebraic)
+            } else {
+                /*
+                    Not a valid key character, so ignore it.
+                    Anything that doesn't belong in the key will be treated as padding.
+                */
+            }
+        }
+    }
+    return ciphertext;
+};
+
+var vigenere_decrypt = function(key, ciphertext, modi){
+    var plaintext = "";
+    var k = [];
+    
+    var i = 0;
+    for(var a=0; a<key.length; a++){
+        var char = key[a];
+        if(alphabet_lower.includes(char)){
+            k.push(Number(alphabet_lower.indexOf(char)));
+        } else if(alphabet_upper.includes(char)) {
+            k.push(Number(alphabet_upper.indexOf(char)));
+        } else {
+            /*
+                Not a valid key character, so ignore it.
+                Anything that doesn't belong in the key will be treated as padding.
+            */
+            i --;
+        }
+        i ++;
+    }
+    
+    i = 0;
+    for(var a=0; a<ciphertext.length; a++){
+        var is_alpha;
+        var char = ciphertext[a];
+        if(alphabet_lower.includes(char)){
+            var ix = mod((Number(alphabet_lower.indexOf(char)) - Number(k[i % k.length])), alphabet_lower.length);
+            plaintext += alphabet_lower[ix];
+            is_alpha = true;
+        } else if(alphabet_upper.includes(char)) {
+            var ix = mod((Number(alphabet_upper.indexOf(char)) - Number(k[i % k.length])), alphabet_upper.length);
+            plaintext += alphabet_upper[ix];
+            is_alpha = true;
+        } else {
+            plaintext += char;
+            i --;
+            is_alpha = false;
+        }
+        
+        i ++;
+        
+                
+        var c = char;
+        // Add 'c' to the key
+        if(modi && is_alpha){
+            if(alphabet_lower.includes(c)){
+                k.push(Number(k[i % k.length] + alphabet_lower.indexOf(c) + 1) % alphabet_lower.length);
+//                k[i] = mod((Number(alphabet_lower.indexOf(c)) + 1, alphabet_lower.length); // Vigenere encrypt (algebraic)
+            } else if(alphabet_upper.includes(c)) {
+                k.push(Number(k[i % k.length] + alphabet_upper.indexOf(c) + 1) % alphabet_lower.length);
+//                k[i] = mod((Number(alphabet_upper.indexOf(c))) + 1, alphabet_upper.length); // Vigenere encrypt (algebraic)
+            } else {
+                /*
+                    Not a valid key character, so ignore it.
+                    Anything that doesn't belong in the key will be treated as padding.
+                */
+            }
+        }
+    }
+    return plaintext;
+};
+
+var ktos = function(k, alphabet){
+    return alphabet.indexOf(String(alphabet[k])[0]);
+}
+var mod = function(a, b){
+    if(a < 0){
+        a += - Math.floor(a / b) * b;
+    }
+    //console.log(a);
+    return a % b;
+};
+		</script>
+		<script type="text/javascript">
+		    var encrypt = function(){
+		        var c_algo = radio_get_checked("crypto-algo");
+		        var c_expansion = evanescence_expand_key;
+		        var c_encrypt = evanescence_encrypt;
+		        if(c_algo == "vigenere"){
+		            c_encrypt = function(key, msg, iv, kexp){getDetails("Encrypt", Array("Using algorithm '"+c_algo+"'")); return vigenere_encrypt(key, msg, false);};
+		        } else if(c_algo == "keyman"){
+		            c_encrypt = function(key, msg, iv, kexp){getDetails("Encrypt", Array("Using algorithm '"+c_algo+"':\nAlgorothm not implemented...")); return c_algo+": Not implemented!";};
+		        }
+		        
+		        document.getElementById("ciphertext").value = c_encrypt(document.getElementById("key").value, document.getElementById("plaintext").value, document.getElementById("iv").value, evanescence_expand_key);
+		    };
+		    var decrypt = function(){
+		        var c_algo = radio_get_checked("crypto-algo");
+		        var c_expansion = evanescence_expand_key;
+		        var c_encrypt = evanescence_decrypt;
+		        if(c_algo == "vigenere"){
+		            c_encrypt = function(key, msg, iv, kexp){getDetails("Decrypt", Array("Using algorithm '"+c_algo+"'")); return vigenere_decrypt(key, msg, false);};
+		        } else if(c_algo == "keyman"){
+		            c_encrypt = function(key, msg, iv, kexp){getDetails("Decrypt", Array("Using algorithm '"+c_algo+"':\nAlgorothm not implemented...")); return c_algo+": Not implemented!";};
+		        }
+		        
+		        document.getElementById("plaintext").value = c_encrypt(document.getElementById("key").value, document.getElementById("ciphertext").value, document.getElementById("iv").value, evanescence_expand_key);
+		    };
+		    
+		    var radio_get_checked = function(name){
+		        var radios = document.getElementsByName(name);
+                for(var a=0; a<radios.length; a++){
+                    if(radios[a].checked){
+                        return radios[a].value;
+                    }
+                }
+		    };
+		    
+		    var display_long_desc = function(elem){
+		        elem = elem + "-long-desc";
+		        document.getElementById(elem).style.display = "block";
+		    };
+		    var hide_long_desc = function(elem){
+		        elem = elem + "-long-desc";
+		        document.getElementById(elem).style.display = "none";
+		    };
+		</script>
+	</head>
+	<body>
+	    <div class="header">
+	        <h1>
+	            Evanescence Cipher
+	        </h1>
+	        <h4>
+	            <span style="font-variant: normal;">Created by <span style="font-variant: small-caps;">Alex Anderson</span>. <a href="https://gitlab.com/crash0verrid3/evanescence/blob/master/Evanescence-Cipher/Ammonium%20(A)/Evanescence.html">View the source</a> at <a href="https://gitlab.com/crash0verrid3/evanescence/blob/master/Evanescence-Cipher/Ammonium%20(A)/Evanescence.html">GitLab</a></span>
+	        </h4>
+	    </div>
+		<div class="crypto">
+		    Key:<br /><div style="font-size: .8em; color: #888888;">The <i>key</i> should be 3-4 randomly chosen English words (for basic security). 6-7 words is recommended if you want <i>good</i> security. The key can be as long as you want, but there's probably no reason to go higher.</div>
+<textarea id="key" rows=4 class="crypto" placeholder="The key to life...
+It goes here.
+
+The key should be changed with every message."></textarea><br /><br />
+		    Personal secret:<br /><div style="font-size: .8em; color: #888888;">The <i>personal secret</i> is used by the Evanescence cipher. It only needs to be changed if someone learns the key, but changing it more frequently is acceptable.</div>
+            <input type="text" id="iv" rows=4 class="crypto" placeholder="1-3 randomly chosen English words (or more)"></input><br /><br />
+                <table class="crypto-algo crypto ciphersuite">
+                    <tr>
+                        <th>Encryption algorithm: <span class="table-header"><!-- Nothing here --></span></th>
+                    </tr>
+                    <tr>
+                        <td class="top">
+                            <input type="radio" name="crypto-algo" id="crypto-algo-1" value="evanescence" checked> <label for="crypto-algo-1"><b>Evanescence</b>: <i style="font-size: .8em;">(Recommended) A custom version of a modified <a href="https://en.wikipedia.org/wiki/Vigen%C3%A8re_cipher">Vigenère cipher</a> combined with an <a href="https://en.wikipedia.org/wiki/Autokey_cipher">Autokey cipher</a>. <sub><a href="javascript:display_long_desc('evanescence');" onclick="display_long_desc('evanescence');">Read more</a></sub></i></label>
+                            <div id="evanescence-long-desc" class="div-hidden">
+                                <h4 class="evanescence">
+                                    Evanescence is performed as follows:
+                                </h4>
+                                <ol type="1" style="font-size: .8em;">
+                                    <li>
+                                        Choose a key. The key should be multiple English words. The length depends on your needs, but 3 words should be the minimum for decent security. Recommended is 6-7 words for maximum security.
+                                    </li>
+                                    <li>
+                                        Expand the key using the key <a href="javascript:display_long_desc('evanescence-key-exp');" onclick="display_long_desc('evanescence-key-exp');">key expansion function</a>. This will result in having 2 separate keys, called "round keys".
+                                        <div id="evanescence-key-exp-long-desc" class="div-hidden">
+                                            <ol type="1">
+                                                <li>
+                                                    Take the message key, and divide it into a list of words. For example, <span class="pre">"this is a key"</span> would become <span class="pre">["this", "is", "a", "key"]</span>.<br>
+                                                    The words will be indexed from 1, so <span class="pre">"this"</span> is <i>word 1</i>, <span class="pre">"is"</span> is <i>word 2</i>, etc.<br>
+                                                    Capitalization doesn't matter.<br><br>
+                                                    <i><b>Note:</b> When using this tool, anything that isn't an English letter will be comsidered to be a separator between words. The key <span class="pre">"Don't do this! A1B2C3"</span> will become <span class="pre">["don", "t", "do", "this", "a", "b", "c"]</span>.<br>
+                                                    If that behaviour isn't desired, write <span class="pre">"Dont do this ABC"</span> instead.<br><br>
+                                                </li>
+                                                <li>
+                                                    Take the <i>personal secret</i> and remove anything that isn't a letter. For example, <span class="pre">"My secret is peppermint 9 r 2"</span> would become <span class="pre">"MySecretIsPeppermintR"</span>. Capitalization doesn't matter.<br><br>
+                                                </li>
+                                                <li>
+                                                    Take word 1 of the key and add <span class="pre">"A"</span> to match the length. For example, with the key <span class="pre">"this"</span> and the <i>personal secret</i> <span class="pre">"ApplePie"</span>, word 1 of the key would now be <span class="pre">ThisAaaa</span>.<br>
+                                                    <i><b>Note:</b> If the key word 1 is already longer than the personal secret, leave it as-is.</i><br><br>
+                                                </li>
+                                                <li>
+                                                    Use the modified Vigenère cipher to encrypt word 1 of the key (ex. <span class="pre">"ThisAaAa"</span>), using <i>personal secret</i> as the key. Ex. <span class="pre">vigenere_modified(message = "ThisAaaa", key = "ApplePie") => "TwxdePie"</span>. This will be the <i>first round key</i>.<br><br>
+                                                </li>
+                                                <li>
+                                                    Add the length of every word in the key (not counting word 1).<br>
+                                                    Ex. For the key <span class="pre">["this", "is", "a", "key"]</span> the length is <span class="pre">6</span> (<span class="pre">length("isakey") == 6</span>).<br><br>
+                                                </li>
+                                                <li>
+                                                    Repeat the letter <span class="pre">"A"</span> to match the length of the words in the key. If the length was <span class="pre">6</span>, the <i>round 2 key</i> will be <span class="pre">"AaaAaa"</span>.<br><br>
+                                                </li>
+                                                <li>
+                                                    For each word in the key, use the modified Vigenère encrypt the <i>round 2 key</i> using the word as the key. As before, don't include word 1.<br><br>
+<pre>
+key = ["this", "is", "a", "key"]
+                  
+vigenere_modified(message = "AaAaAa", key = "is") => "IsBuWr"
+vigenere_modified(message = "IsBuWr", key = "a") => "IbDyVn"
+vigenere_modified(message = "IbDyVn", key = "key") => "SfBvZm"
+</pre>
+                                                </li>
+                                                <li>
+                                                    You should have 2 round keys. In our example, you should get the following:<br>
+<pre>
+original_key             = "This is a key"
+original_personal_secret = "Apple Pie"
+
+round_1_key = "twxdepie"
+round_2_key = "sfbvzm"
+</pre>
+                                                </li>
+                                            </ol>
+                                            <sub><a href="javascript:hide_long_desc('evanescence-key-exp');" onclick="hide_long_desc('evanescence-key-exp');">(Show less)</a></sub>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        Encrypt your message using the first round key, with the <a href="javascript:display_long_desc('evanescence-vigenere');" onclick="display_long_desc('evanescence-vigenere');">modified Vigenère cipher</a>. Then, encrypt your message with the second round key.
+                                    </li>
+                                    <div id="evanescence-vigenere-long-desc" class="div-hidden">
+                                        <h4 class="evanescence">
+                                            Evanescence uses a modified Vigenère cipher, performed as follows:
+                                        </h4>
+                                        The modified Vigenère is performed as follows:
+                                        <ol type="1">
+                                            <li>
+                                                For each letter in the message, perform the Vigenère cipher normally.
+                                            </li>
+                                            <li>
+                                                As you encrypt each letter, take the result. This will be the <i>ciphertext letter</i>.
+                                            </li>
+                                            <li>
+                                                Take the <i>ciphertext letter</i> and combine it with the next letter of the key, and shift by 1. For example, if for the key <span class="pre">"mykey"</span> and the ciphertext <span class="pre">"Ecmvcw"</span>, the key would become <span class="pre">"Dnrugk"</span>.<br><br>
+<pre>
+vigenere("e", "y") => "c" (shift by 1 to get "D")
+vigenere("c", "k") => "m" (shift by 1 to get "n")
+vigenere("m", "e") => "q" (shift by 1 to get "r")
+
+...
+
+vigenere("v", "y") => "j" (shift by 1 to get "k")
+</pre>
+<pre>
+Regular Vigenere:
+key        = "Mykey"
+message    = "SecretMessa"
+new_key    = "MykeyMykeyM" // The key repeats for the length of the message
+--------------------------
+ciphertext = "EcmvcfKowqm"
+
+
+Modified Vigenere:
+key        = "Mykey"
+message    = "SecretMessa"
+new_key    = "MykeyDnrugk"
+--------------------------
+ciphertext = "EcmvcwZvmyk"
+</pre>
+                                            </li>
+                                            <li>
+                                                The <i>ciphertext</i> is the result of the modified Vigenère. In the example above, the result would be <span class="pre">"EcmvcwZvmyk"</span>.
+                                            </li>
+                                        </ol>
+                                        <sub><a href="javascript:hide_long_desc('evanescence-vigenere');" onclick="hide_long_desc('evanescence-vigenere');">(Show less)</a></sub>
+                                    </div>
+                                </ol>
+                                <sub><a href="javascript:hide_long_desc('evanescence');" onclick="hide_long_desc('evanescence');">(Show less)</a></sub>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <input type="radio" name="crypto-algo" id="crypto-algo-2" value="vigenere"> <label for="crypto-algo-2"><b>Vigenère</b>: <i style="font-size: .8em;">A classical encryption algorithm named after <a href="https://en.wikipedia.org/wiki/Blaise_de_Vigen%C3%A8re">Blaise de Vigenère</a>. This cipher is known to have problems which can reveal the contents of a message. The cipher was created by <a href="https://en.wikipedia.org/wiki/Giovan_Battista_Bellaso">Giovan Battista Bellaso</a>.</i></label>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <input type="radio" name="crypto-algo" id="crypto-algo-3" value="vigenere"> <label for="crypto-algo-2"><b>Caesar</b>: <i style="font-size: .8em;">A classical encryption algorithm named after <a href="https://en.wikipedia.org/wiki/Julius_Caesar">Julius Caesar</a>, who used it for private messages. The <a href="https://en.wikipedia.org/wiki/Caesar_cipher">Caesar cipher</a> is equivalent to the Vigenère cipher with only a one-letter key. This cipher is known to have problems which can reveal the contents of a message.</i></label>
+                        </td>
+                    </tr>
+                </table>
+            <br>
+		    
+		    Plaintext:<br />
+<textarea id="plaintext" class="crypto" onchange="encrypt();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();" placeholder="Plaintext goes here...
+The ciphertext will be automatically updated as you type!"></textarea><br /><br />
+		    
+		    Ciphertext:<br />
+<textarea id="ciphertext" class="crypto" onchange="decrypt();" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();" placeholder="Ciphertext goes here...
+The plaintext will be automatically updated as you type!"></textarea><br /><br /><br />
+Advanced / Debugging details:<br />
+<textarea class="crypto" id="crypto-details" rows=20 readonly>No details to show.
+</textarea>
+		</div>
+	</body>
+</html>
